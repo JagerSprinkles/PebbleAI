@@ -7,12 +7,23 @@ static TextLayer *s_output_layer;
 static ScrollLayer *s_scroll_layer;
 static ClickHandler select_click_handler;
 
+#if defined(PBL_TOUCH)
+/* Content offset at the start of the active pan gesture. */
+static int16_t s_scroll_base;
+#endif
+
 static void scroll_text_up(ClickRecognizerRef recognizer, void *context) {
   scroll_layer_scroll_up_click_handler(recognizer, s_scroll_layer);
+#if defined(PBL_TOUCH)
+  s_scroll_base = scroll_layer_get_content_offset(s_scroll_layer).y;
+#endif
 }
 
 static void scroll_text_down(ClickRecognizerRef recognizer, void *context) {
   scroll_layer_scroll_down_click_handler(recognizer, s_scroll_layer);
+#if defined(PBL_TOUCH)
+  s_scroll_base = scroll_layer_get_content_offset(s_scroll_layer).y;
+#endif
 }
 
 static void click_config_provider(void *context) {
@@ -21,6 +32,43 @@ static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
   window_long_click_subscribe(BUTTON_ID_SELECT, 700, NULL, show_settings_menu);
 }
+
+#if defined(PBL_TOUCH)
+static void pan_handler(const Recognizer *recognizer, RecognizerEvent event) {
+  switch (event) {
+    case RecognizerEvent_Updated: {
+      GPoint d = pan_recognizer_get_delta_since_start(recognizer);
+      scroll_layer_set_content_offset(s_scroll_layer, GPoint(0, s_scroll_base + d.y), false);
+      break;
+    }
+    case RecognizerEvent_Completed:
+      s_scroll_base = scroll_layer_get_content_offset(s_scroll_layer).y;
+      break;
+    case RecognizerEvent_Cancelled:
+      scroll_layer_set_content_offset(s_scroll_layer, GPoint(0, s_scroll_base), true);
+      break;
+    default:
+      break;
+  }
+}
+
+static void tap_handler(const Recognizer *recognizer, RecognizerEvent event) {
+  (void) recognizer;
+  if (event == RecognizerEvent_Completed && select_click_handler) {
+    select_click_handler(NULL, NULL);
+  }
+}
+
+static void setup_touch_scrolling(Window *window) {
+  window_set_touch_bridge_disabled(window, true);
+
+  Recognizer *pan = pan_recognizer_create(pan_handler, NULL, PanAxis_Vertical);
+  window_attach_recognizer(window, pan);
+
+  Recognizer *tap = tap_recognizer_create(tap_handler, NULL);
+  window_attach_recognizer(window, tap);
+}
+#endif
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -56,6 +104,10 @@ static void window_load(Window *window) {
   text_layer_enable_screen_text_flow_and_paging(s_output_layer, 2);
 
   scroll_layer_set_paging(s_scroll_layer, true);
+
+#if defined(PBL_TOUCH)
+  setup_touch_scrolling(window);
+#endif
 }
 
 static void window_unload(Window *window) {
@@ -80,6 +132,9 @@ void cleanup_ui() {
 void scroll_to_top() {
   GPoint offset = GPointZero;
   scroll_layer_set_content_offset(s_scroll_layer, offset, true);
+#if defined(PBL_TOUCH)
+  s_scroll_base = 0;
+#endif
 }
 
 void set_text(char* text) {
