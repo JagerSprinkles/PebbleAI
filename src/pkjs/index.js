@@ -25,9 +25,11 @@ function getErrorMessage(errorBody) {
 var CONFIG_KEY = "config";
 var API_KEY = "apiKey";
 var MODEL = "model";
-var SYSTEM_PROMPT = "systemPrompt";
 var TEMPERATURE = "temperature";
 var API_PROVIDER = "apiProvider";
+
+var DEFAULT_SYSTEM_PROMPT =
+  "You are responding by text on a Pebble smart watch with a small screen. Keep your answer short and direct.";
 
 // Cap conversation history to limit phone memory and API payload size.
 var MAX_MESSAGES = 20;
@@ -100,134 +102,12 @@ var clayConfig = [
     items: [
       {
         type: "heading",
-        defaultValue: "Required for OpenAI",
+        defaultValue: "OpenAI",
       },
       {
         type: "input",
         messageKey: "apiKey",
-        label: "OpenAI API key",
-      },
-    ],
-  },
-  {
-    type: "section",
-    items: [
-      {
-        type: "heading",
-        defaultValue: "Required for Claude",
-      },
-      {
-        type: "input",
-        messageKey: "claudeApiKey",
-        label: "Claude API key",
-      },
-      {
-        type: "select",
-        messageKey: "claudeModel",
-        defaultValue: "claude-haiku-4-5",
-        label: "Claude model",
-        description: "Pick a current model. Choose \u201CCustom\u2026\u201D to type any model ID \u2014 handy when Anthropic retires a model and this list is out of date.",
-        options: [
-          { label: "Haiku 4.5 (cheapest, recommended)", value: "claude-haiku-4-5" },
-          { label: "Sonnet 5", value: "claude-sonnet-5" },
-          { label: "Custom\u2026", value: "custom" },
-        ],
-      },
-      {
-        type: "input",
-        messageKey: "claudeModelCustom",
-        label: "Custom Claude model ID",
-        description: "Only used when \u201CCustom\u2026\u201D is selected above. Enter the exact model ID, e.g. claude-haiku-4-5.",
-        attributes: { placeholder: "claude-haiku-4-5" },
-      },
-    ],
-  },
-  {
-    type: "section",
-    items: [
-      {
-        type: "heading",
-        defaultValue: "Required for Gemini",
-      },
-      {
-        type: "input",
-        messageKey: "geminiApiKey",
-        label: "Gemini API key",
-      },
-      {
-        type: "select",
-        messageKey: "geminiModel",
-        defaultValue: "gemini-3.1-flash-lite",
-        label: "Gemini model",
-        description: "Pick a current model. Choose \u201CCustom\u2026\u201D to type any model ID \u2014 handy when Google retires a model and this list is out of date.",
-        options: [
-          { label: "Gemini 3.1 Flash-Lite (cheapest, recommended)", value: "gemini-3.1-flash-lite" },
-          { label: "Gemini 3.5 Flash-Lite", value: "gemini-3.5-flash-lite" },
-          { label: "Gemini 3.8 Flash (balanced)", value: "gemini-3.8-flash" },
-          { label: "Custom\u2026", value: "custom" },
-        ],
-      },
-      {
-        type: "input",
-        messageKey: "geminiModelCustom",
-        label: "Custom Gemini model ID",
-        description: "Only used when \u201CCustom\u2026\u201D is selected above. Enter the exact model ID, e.g. gemini-3.1-pro.",
-        attributes: { placeholder: "gemini-3.1-flash-lite" },
-      },
-    ],
-  },
-  {
-    type: "section",
-    items: [
-      {
-        type: "heading",
-        defaultValue: "Required for DeepSeek",
-      },
-      {
-        type: "input",
-        messageKey: "deepseekApiKey",
-        label: "DeepSeek API key",
-      },
-    ],
-  },
-  {
-    type: "section",
-    items: [
-      {
-        type: "heading",
-        defaultValue: "Required for Grok",
-      },
-      {
-        type: "input",
-        messageKey: "grokApiKey",
-        label: "Grok API key",
-      },
-      {
-        type: "select",
-        messageKey: "grokModel",
-        defaultValue: "grok-4.3",
-        label: "Grok model",
-        options: [
-          { label: "Grok 4.3 (recommended)", value: "grok-4.3" },
-          { label: "Grok 4.6 (frontier)", value: "grok-4.6" },
-          { label: "Grok 4.5", value: "grok-4.5" },
-        ],
-      },
-    ],
-  },
-  {
-    type: "section",
-    items: [
-      {
-        type: "heading",
-        defaultValue: "Optional",
-      },
-      {
-        type: "input",
-        messageKey: "systemPrompt",
-        label: "System prompt (for OpenAI)",
-        description:
-          "Any context for your queries – something about yourself, or how you want GPT to respond. For example: <em>Respond with one sentence.</em>",
+        label: "API key",
       },
       {
         type: "select",
@@ -262,10 +142,17 @@ var clayConfig = [
         ],
       },
       {
+        type: "input",
+        messageKey: "openaiSystemPrompt",
+        defaultValue: DEFAULT_SYSTEM_PROMPT,
+        label: "System prompt",
+        description: "Context for how OpenAI should respond on the watch.",
+      },
+      {
         type: "slider",
         messageKey: "temperature",
         defaultValue: 1,
-        label: "Temperature (for OpenAI)",
+        label: "Temperature",
         description: "How creative the responses should be.",
         min: 0,
         max: 2,
@@ -274,6 +161,149 @@ var clayConfig = [
           precision: 1,
           type: "number"
         }
+      },
+    ],
+  },
+  {
+    type: "section",
+    items: [
+      {
+        type: "heading",
+        defaultValue: "Claude",
+      },
+      {
+        type: "input",
+        messageKey: "claudeApiKey",
+        label: "API key",
+      },
+      {
+        type: "select",
+        messageKey: "claudeModel",
+        defaultValue: "claude-haiku-4-5",
+        label: "Model",
+        description: "Pick a current model. Choose \u201CCustom\u2026\u201D to type any model ID \u2014 handy when Anthropic retires a model and this list is out of date.",
+        options: [
+          { label: "Haiku 4.5 (cheapest, recommended)", value: "claude-haiku-4-5" },
+          { label: "Sonnet 5", value: "claude-sonnet-5" },
+          { label: "Custom\u2026", value: "custom" },
+        ],
+      },
+      {
+        type: "input",
+        messageKey: "claudeModelCustom",
+        label: "Custom model ID",
+        description: "Only used when \u201CCustom\u2026\u201D is selected above. Enter the exact model ID, e.g. claude-haiku-4-5.",
+        attributes: { placeholder: "claude-haiku-4-5" },
+      },
+      {
+        type: "input",
+        messageKey: "claudeSystemPrompt",
+        defaultValue: DEFAULT_SYSTEM_PROMPT,
+        label: "System prompt",
+        description: "Context for how Claude should respond on the watch.",
+      },
+    ],
+  },
+  {
+    type: "section",
+    items: [
+      {
+        type: "heading",
+        defaultValue: "Gemini",
+      },
+      {
+        type: "input",
+        messageKey: "geminiApiKey",
+        label: "API key",
+      },
+      {
+        type: "select",
+        messageKey: "geminiModel",
+        defaultValue: "gemini-3.1-flash-lite",
+        label: "Model",
+        description: "Pick a current model. Choose \u201CCustom\u2026\u201D to type any model ID \u2014 handy when Google retires a model and this list is out of date.",
+        options: [
+          { label: "Gemini 3.1 Flash-Lite (cheapest, recommended)", value: "gemini-3.1-flash-lite" },
+          { label: "Gemini 3.5 Flash-Lite", value: "gemini-3.5-flash-lite" },
+          { label: "Gemini 3.8 Flash (balanced)", value: "gemini-3.8-flash" },
+          { label: "Custom\u2026", value: "custom" },
+        ],
+      },
+      {
+        type: "input",
+        messageKey: "geminiModelCustom",
+        label: "Custom model ID",
+        description: "Only used when \u201CCustom\u2026\u201D is selected above. Enter the exact model ID, e.g. gemini-3.1-pro.",
+        attributes: { placeholder: "gemini-3.1-flash-lite" },
+      },
+      {
+        type: "input",
+        messageKey: "geminiSystemPrompt",
+        defaultValue: DEFAULT_SYSTEM_PROMPT,
+        label: "System prompt",
+        description: "Context for how Gemini should respond on the watch.",
+      },
+    ],
+  },
+  {
+    type: "section",
+    items: [
+      {
+        type: "heading",
+        defaultValue: "DeepSeek",
+      },
+      {
+        type: "input",
+        messageKey: "deepseekApiKey",
+        label: "API key",
+      },
+      {
+        type: "input",
+        messageKey: "deepseekSystemPrompt",
+        defaultValue: DEFAULT_SYSTEM_PROMPT,
+        label: "System prompt",
+        description: "Context for how DeepSeek should respond on the watch.",
+      },
+    ],
+  },
+  {
+    type: "section",
+    items: [
+      {
+        type: "heading",
+        defaultValue: "Grok",
+      },
+      {
+        type: "input",
+        messageKey: "grokApiKey",
+        label: "API key",
+      },
+      {
+        type: "select",
+        messageKey: "grokModel",
+        defaultValue: "grok-4.3",
+        label: "Model",
+        options: [
+          { label: "Grok 4.3 (recommended)", value: "grok-4.3" },
+          { label: "Grok 4.6 (frontier)", value: "grok-4.6" },
+          { label: "Grok 4.5", value: "grok-4.5" },
+        ],
+      },
+      {
+        type: "input",
+        messageKey: "grokSystemPrompt",
+        defaultValue: DEFAULT_SYSTEM_PROMPT,
+        label: "System prompt",
+        description: "Context for how Grok should respond on the watch.",
+      },
+    ],
+  },
+  {
+    type: "section",
+    items: [
+      {
+        type: "heading",
+        defaultValue: "App Settings",
       },
       {
         type: "toggle",
@@ -494,9 +524,9 @@ function makeOpenAIRequest(prompt, config, onResponse, onError) {
   request.setRequestHeader("Content-Type", "application/json");
   request.setRequestHeader("Authorization", "Bearer " + config.apiKey);
 
-  if (messages.length === 0 && config.systemPrompt) {
+  if (messages.length === 0 && config.openaiSystemPrompt) {
     log("Adding system prompt");
-    messages.push({ role: "system", content: config.systemPrompt });
+    messages.push({ role: "system", content: config.openaiSystemPrompt });
   }
 
   messages.push({ role: "user", content: prompt });
@@ -568,13 +598,16 @@ function makeClaudeRequest(prompt, config, onResponse, onError) {
   messages.push({ role: "user", content: prompt });
   trimMessages();
 
-  var requestBody = JSON.stringify({
+  var requestBody = {
     model: model,
     max_tokens: MAX_OUTPUT_TOKENS,
     messages: claudeMessages
-  });
+  };
+  if (config.claudeSystemPrompt) {
+    requestBody.system = config.claudeSystemPrompt;
+  }
 
-  request.send(requestBody);
+  request.send(JSON.stringify(requestBody));
 }
 
 function makeGeminiRequest(prompt, config, onResponse, onError) {
@@ -625,7 +658,6 @@ function makeGeminiRequest(prompt, config, onResponse, onError) {
   var i;
   for (i = 0; i < messages.length; i++) {
     var m = messages[i];
-    if (m.role === "system") { continue; }
     var role = m.role === "user" ? "user" : "model";
     contents.push({
       role: role,
@@ -633,7 +665,7 @@ function makeGeminiRequest(prompt, config, onResponse, onError) {
     });
   }
 
-  var requestBody = JSON.stringify({
+  var requestBody = {
     contents: contents,
     generationConfig: {
       temperature: config[TEMPERATURE] || 1,
@@ -641,9 +673,14 @@ function makeGeminiRequest(prompt, config, onResponse, onError) {
       topP: 1,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
     }
-  });
+  };
+  if (config.geminiSystemPrompt) {
+    requestBody.systemInstruction = {
+      parts: [{ text: config.geminiSystemPrompt }]
+    };
+  }
 
-  request.send(requestBody);
+  request.send(JSON.stringify(requestBody));
 }
 
 function makeDeepSeekRequest(prompt, config, onResponse, onError) {
@@ -679,8 +716,8 @@ function makeDeepSeekRequest(prompt, config, onResponse, onError) {
   request.setRequestHeader("Content-Type", "application/json");
   request.setRequestHeader("Authorization", "Bearer " + config.deepseekApiKey);
 
-  if (messages.length === 0 && config.systemPrompt) {
-    messages.push({ role: "system", content: config.systemPrompt });
+  if (messages.length === 0 && config.deepseekSystemPrompt) {
+    messages.push({ role: "system", content: config.deepseekSystemPrompt });
   }
 
   messages.push({ role: "user", content: prompt });
@@ -739,8 +776,8 @@ function makeGrokRequest(prompt, config, onResponse, onError) {
   request.setRequestHeader("Content-Type", "application/json");
   request.setRequestHeader("Authorization", "Bearer " + config.grokApiKey);
 
-  if (messages.length === 0 && config.systemPrompt) {
-    messages.push({ role: "system", content: config.systemPrompt });
+  if (messages.length === 0 && config.grokSystemPrompt) {
+    messages.push({ role: "system", content: config.grokSystemPrompt });
   }
 
   messages.push({ role: "user", content: prompt });
@@ -767,12 +804,14 @@ Pebble.addEventListener("ready", function (e) {
   loadConfigFromStorage();
 });
 
-// Config message keys in same order as package.json pebble.messageKeys (keys 3–20).
+// Config message keys in same order as package.json pebble.messageKeys (keys 3–24).
 var CONFIG_MESSAGE_KEYS = [
-  "apiKey", "model", "systemPrompt", "temperature", "vibrate", "apiProvider",
+  "apiKey", "model", "temperature", "vibrate", "apiProvider",
   "claudeApiKey", "geminiApiKey", "confirmTranscription", "invertColors",
   "deepseekApiKey", "showModelName", "grokApiKey", "grokModel",
-  "geminiModel", "geminiModelCustom", "claudeModel", "claudeModelCustom"
+  "geminiModel", "geminiModelCustom", "claudeModel", "claudeModelCustom",
+  "openaiSystemPrompt", "claudeSystemPrompt", "geminiSystemPrompt",
+  "deepseekSystemPrompt", "grokSystemPrompt"
 ];
 
 function buildKeyMapping() {
@@ -824,7 +863,7 @@ Pebble.addEventListener("appmessage", function (e) {
     Pebble.sendAppMessage({ AppKeyResponse: responseText });
   }
 
-  var providerFromWatch = e.payload.AppKeyApiProvider || e.payload.apiProvider || e.payload[8];
+  var providerFromWatch = e.payload.AppKeyApiProvider || e.payload.apiProvider || e.payload[7];
   if (providerFromWatch) {
     var config = getConfig();
     if (config.apiProvider !== providerFromWatch) {

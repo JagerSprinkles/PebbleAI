@@ -38,7 +38,7 @@ Long-press **Select** to open the on-watch settings menu.
 
 Configure the app in two places:
 
-- **Phone** (Pebble / Rebble app → PebbleAI-Plus → Settings): API provider, API keys, model choices, system prompt, temperature, vibrate, confirm transcription, invert colors, show model name. Stored on the phone and used for API calls.
+- **Phone** (Pebble / Rebble app → PebbleAI-Plus → Settings): API provider, API keys, model choices, per-provider system prompt, temperature, vibrate, confirm transcription, invert colors, show model name. Stored on the phone and used for API calls.
 - **Watch** (long-press Select → Save Settings): vibrate, confirm transcription, invert colors, and API provider. Stored on the watch.
 
 Settings:
@@ -46,8 +46,8 @@ Settings:
 1. API provider (OpenAI, Claude, Gemini, DeepSeek, or Grok)
 2. API key for the selected provider
 3. Model selection (OpenAI, Claude, Gemini, Grok; Claude and Gemini also support a custom model ID)
-4. System prompt (OpenAI-compatible providers)
-5. Temperature
+4. System prompt (one per provider)
+5. Temperature (OpenAI)
 6. Vibration on response
 7. Confirm transcription before sending
 8. Invert colors (light / dark)
