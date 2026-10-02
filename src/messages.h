@@ -5,15 +5,15 @@ typedef enum {
   AppKeyTranscription = 1,
   AppKeyResponse = 2,
   AppKeyApiKey = 3,
-  AppKeyVibrate = 7,
-  AppKeyApiProvider = 8,
-  AppKeyClaudeApiKey = 9,
-  AppKeyGeminiApiKey = 10,
-  AppKeyConfirmTranscription = 11,
-  AppKeyInvertColors = 12,
-  AppKeyDeepseekApiKey = 13,
-  AppKeyShowModelName = 14,
-  AppKeyGrokApiKey = 15
+  AppKeyVibrate = 6,
+  AppKeyApiProvider = 7,
+  AppKeyClaudeApiKey = 8,
+  AppKeyGeminiApiKey = 9,
+  AppKeyConfirmTranscription = 10,
+  AppKeyInvertColors = 11,
+  AppKeyDeepseekApiKey = 12,
+  AppKeyShowModelName = 13,
+  AppKeyGrokApiKey = 14
 } AppKey;
 
 /// Function which handles messages (could be passed to `app_message_register_inbox_received`)

@@ -5,6 +5,18 @@ All notable changes to PebbleAI-Plus are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project starts at version 1.0.0 as a fork of [PebbleAI](https://github.com/huntboom/PebbleAI).
 
+## [Unreleased]
+
+### Added
+- Per-provider system prompt fields for OpenAI, Claude, Gemini, DeepSeek, and Grok
+- Default system prompt for short replies on a Pebble screen
+
+### Changed
+- Clay settings page groups each provider's options in one section
+- Removed the shared `systemPrompt` message key
+- Claude uses the top-level `system` request field
+- Gemini uses the `systemInstruction` request field
+
 ## [1.0.0] - 2026-10-02
 
 First release of the PebbleAI-Plus fork. Includes bug fixes, resource cleanup, and modernization for limited Pebble hardware.
