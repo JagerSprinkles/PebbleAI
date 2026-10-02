@@ -29,7 +29,7 @@ var TEMPERATURE = "temperature";
 var API_PROVIDER = "apiProvider";
 
 var DEFAULT_SYSTEM_PROMPT =
-  "You are responding by text on a Pebble smart watch with a small screen. Keep your answer short and direct.";
+  "You are responding by text on a Pebble smart watch with a small screen. Keep your answer short and direct. Do not use markdown or other formatting. Use only spaces and new lines.";
 
 // Cap conversation history to limit phone memory and API payload size.
 var MAX_MESSAGES = 20;

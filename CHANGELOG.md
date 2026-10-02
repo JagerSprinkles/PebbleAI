@@ -7,6 +7,8 @@ This project starts at version 1.0.0 as a fork of [PebbleAI](https://github.com/
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-02
+
 ### Added
 - Per-provider system prompt fields for OpenAI, Claude, Gemini, DeepSeek, and Grok
 - Default system prompt for short replies on a Pebble screen
@@ -16,6 +18,7 @@ This project starts at version 1.0.0 as a fork of [PebbleAI](https://github.com/
 - Removed the shared `systemPrompt` message key
 - Claude uses the top-level `system` request field
 - Gemini uses the `systemInstruction` request field
+- Default system prompt bans markdown and other formatting
 
 ## [1.0.0] - 2026-10-02
 
@@ -54,4 +57,5 @@ First release of the PebbleAI-Plus fork. Includes bug fixes, resource cleanup, a
 - `setting_names[]` marked `const` so strings can live in flash
 - Strip-markdown regexes hoisted to module scope
 
+[1.0.1]: https://github.com/JagerSprinkles/PebbleAI-Plus/releases/tag/v1.0.1
 [1.0.0]: https://github.com/JagerSprinkles/PebbleAI-Plus/releases/tag/v1.0.0
