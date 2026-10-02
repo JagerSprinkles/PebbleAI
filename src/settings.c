@@ -80,6 +80,10 @@ Settings get_settings() {
   return settings;
 }
 
+const Settings* get_settings_ptr(void) {
+  return &settings;
+}
+
 void save_settings(Settings new_settings) {
     settings = new_settings;
     persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));

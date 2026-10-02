@@ -39,7 +39,9 @@ static void on_gpt_response(DictionaryIterator *iter) {
 static void init() {
   init_settings();
   init_ui(on_select_click);
-  init_messages(((MessageHandler[]){on_gpt_response, on_settings_received}));
+
+  static MessageHandler s_handlers[] = { on_gpt_response, on_settings_received };
+  init_messages(s_handlers);
 
 #if defined(PBL_TOUCH)
   /* Let MenuLayer screens (settings) scroll and activate by touch. */
@@ -65,6 +67,8 @@ static void init() {
 }
 
 static void deinit() {
+  cleanup_transcription();
+  cleanup_messages();
   cleanup_ui();
 }
 

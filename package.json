@@ -1,6 +1,6 @@
 {
-  "version": "2.2.0",
-  "author": "huntboom",
+  "version": "1.0.0",
+  "author": "jager",
   "private": true,
   "dependencies": {
     "pebble-clay": "^1.0.4"
@@ -11,10 +11,22 @@
   "pebble": {
     "sdkVersion": "3",
     "resources": {
-      "media": []
+      "media": [
+        {
+          "menuIcon": true,
+          "type": "png",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/icon_menu_25.png"
+        },
+        {
+          "type": "png",
+          "name": "IMAGE_APP_ICON",
+          "file": "images/icon_144.png"
+        }
+      ]
     },
     "projectType": "native",
-    "uuid": "1500ee62-ceec-4a19-8745-73e0b505f85a",
+    "uuid": "bbde3a58-9648-40e4-95e3-f76b0ef432ac",
     "messageKeys": {
       "AppKeyTranscription": 1,
       "AppKeyResponse": 2,
@@ -33,13 +45,15 @@
       "grokApiKey": 15,
       "grokModel": 16,
       "geminiModel": 17,
-      "geminiModelCustom": 18
+      "geminiModelCustom": 18,
+      "claudeModel": 19,
+      "claudeModelCustom": 20
     },
-    "configurable":true, 
+    "configurable": true,
     "enableMultiJS": true,
-    "displayName": "PebbleAI",
+    "displayName": "PebbleAI-Plus",
     "watchapp": {
-      "configurable":true, 
+      "configurable": true,
       "onlyShownOnCommunication": false,
       "hiddenApp": false,
       "watchface": false
@@ -54,5 +68,5 @@
       "configurable"
     ]
   },
-  "name": "PebbleAI"
+  "name": "PebbleAI-Plus"
 }

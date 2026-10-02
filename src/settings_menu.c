@@ -15,7 +15,7 @@ typedef enum {
     NUM_SETTINGS
 } SettingType;
 
-static char* setting_names[] = {
+static const char* const setting_names[] = {
     "Vibrate",
     "Confirm Transcription",
     "Invert Colors",
@@ -57,22 +57,23 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
 }
 
 static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
-    Settings current_settings = get_settings();
+    (void) context;
+    const Settings *current_settings = get_settings_ptr();
     bool is_selected = false;
 
     switch(cell_index->row) {
         case SETTING_VIBRATE:
-            is_selected = current_settings.vibrate;
+            is_selected = current_settings->vibrate;
             break;
         case SETTING_CONFIRM_TRANSCRIPTION:
-            is_selected = current_settings.confirmTranscription;
+            is_selected = current_settings->confirmTranscription;
             break;
         case SETTING_INVERT_COLORS:
-            is_selected = current_settings.invertColors;
+            is_selected = current_settings->invertColors;
             break;
         case SETTING_PROVIDER:
             menu_cell_basic_draw(ctx, cell_layer, setting_names[cell_index->row],
-                get_provider_display_name(current_settings.apiProvider), NULL);
+                get_provider_display_name(current_settings->apiProvider), NULL);
             return;
         case SETTING_SUBMIT:
             /* Submit row: label only, no toggle */

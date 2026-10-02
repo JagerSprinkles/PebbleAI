@@ -29,19 +29,28 @@ var SYSTEM_PROMPT = "systemPrompt";
 var TEMPERATURE = "temperature";
 var API_PROVIDER = "apiProvider";
 
+// Cap conversation history to limit phone memory and API payload size.
+var MAX_MESSAGES = 20;
+
+// Cap API output so responses fit the 4096-byte AppMessage inbound buffer.
+var MAX_OUTPUT_TOKENS = 512;
+
 // Maintain conversation history
 var messages = [];
+
+// Cached Clay config; avoid JSON.parse(localStorage) on every API call.
+var cachedConfig = null;
 
 // Clay configuration
 var clayConfig = [
   {
     type: "heading",
-    defaultValue: "PebbleAI Configuration",
+    defaultValue: "PebbleAI-Plus Configuration",
   },
   {
     type: "text",
     defaultValue:
-      "To use PebbleAI you will need to provide your own API keys for the providers you want to use. " +
+      "To use PebbleAI-Plus you will need to provide your own API keys for the providers you want to use. " +
       "<br><br>" +
       "Please note that many API providers require users to add credits to their account before the API becomes usable. " +
       "Free tiers and credit availability vary by provider. " +
@@ -111,6 +120,25 @@ var clayConfig = [
         type: "input",
         messageKey: "claudeApiKey",
         label: "Claude API key",
+      },
+      {
+        type: "select",
+        messageKey: "claudeModel",
+        defaultValue: "claude-haiku-4-5",
+        label: "Claude model",
+        description: "Pick a current model. Choose \u201CCustom\u2026\u201D to type any model ID \u2014 handy when Anthropic retires a model and this list is out of date.",
+        options: [
+          { label: "Haiku 4.5 (cheapest, recommended)", value: "claude-haiku-4-5" },
+          { label: "Sonnet 5", value: "claude-sonnet-5" },
+          { label: "Custom\u2026", value: "custom" },
+        ],
+      },
+      {
+        type: "input",
+        messageKey: "claudeModelCustom",
+        label: "Custom Claude model ID",
+        description: "Only used when \u201CCustom\u2026\u201D is selected above. Enter the exact model ID, e.g. claude-haiku-4-5.",
+        attributes: { placeholder: "claude-haiku-4-5" },
       },
     ],
   },
@@ -211,11 +239,10 @@ var clayConfig = [
             label: "GPT-5-nano",
             value: "gpt-5-nano",
           },
-	  {
+          {
             label: "GPT-5-mini",
             value: "gpt-5-mini",
           },
-	
           {
             label: "GPT-4o-mini",
             value: "gpt-4o-mini",
@@ -228,8 +255,7 @@ var clayConfig = [
             label: "GPT-4.1-nano",
             value: "gpt-4.1-nano",
           },
-
-	{
+          {
             label: "GPT-3.5-turbo",
             value: "gpt-3.5-turbo",
           },
@@ -246,31 +272,31 @@ var clayConfig = [
         step: 0.1,
         attributes: {
           precision: 1,
-          type: 'number'
+          type: "number"
         }
       },
       {
-        type: 'toggle',
-        messageKey: 'vibrate',
-        label: 'Vibrate on response',
+        type: "toggle",
+        messageKey: "vibrate",
+        label: "Vibrate on response",
         defaultValue: true
       },
       {
-        type: 'toggle',
-        messageKey: 'confirmTranscription',
-        label: 'Confirm transcription',
+        type: "toggle",
+        messageKey: "confirmTranscription",
+        label: "Confirm transcription",
         defaultValue: false
       },
       {
-        type: 'toggle',
-        messageKey: 'invertColors',
-        label: 'Invert colors',
+        type: "toggle",
+        messageKey: "invertColors",
+        label: "Invert colors",
         defaultValue: false
       },
       {
-        type: 'toggle',
-        messageKey: 'showModelName',
-        label: 'Display Model Name at start of messages',
+        type: "toggle",
+        messageKey: "showModelName",
+        label: "Display Model Name at start of messages",
         defaultValue: false
       }
     ],
@@ -283,10 +309,22 @@ var clayConfig = [
 
 var clay = new Clay(clayConfig);
 
+function loadConfigFromStorage() {
+  cachedConfig = JSON.parse(localStorage.getItem(CONFIG_KEY)) || {};
+  log("Current config:", JSON.stringify(cachedConfig));
+  return cachedConfig;
+}
+
 function getConfig() {
-  var config = JSON.parse(localStorage.getItem(CONFIG_KEY)) || {};
-  log("Current config:", JSON.stringify(config));
-  return config;
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+  return loadConfigFromStorage();
+}
+
+function saveConfig(configValues) {
+  cachedConfig = configValues;
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(configValues));
 }
 
 // Provider config: key name in config object, request function.
@@ -315,6 +353,30 @@ function resolveGeminiModel(selected, custom) {
   return "gemini-3.1-flash-lite";
 }
 
+// Resolve which Claude model to call (same pattern as Gemini).
+function resolveClaudeModel(selected, custom) {
+  selected = (selected || "").trim();
+  custom = (custom || "").trim();
+
+  if (selected === "custom" && custom) return custom;
+  if (selected && selected !== "custom") return selected;
+  return "claude-haiku-4-5";
+}
+
+function trimMessages() {
+  if (messages.length <= MAX_MESSAGES) {
+    return;
+  }
+
+  var hasSystem = messages.length > 0 && messages[0].role === "system";
+  if (hasSystem) {
+    var systemMsg = messages[0];
+    messages = [systemMsg].concat(messages.slice(-(MAX_MESSAGES - 1)));
+  } else {
+    messages = messages.slice(-MAX_MESSAGES);
+  }
+}
+
 function makeApiRequest(prompt, onResponse, onError) {
   var config = getConfig();
   var provider = config[API_PROVIDER];
@@ -333,8 +395,18 @@ function makeApiRequest(prompt, onResponse, onError) {
     return;
   }
   log(provider, "API key found, making request");
-  pc.fn(prompt, onResponse, onError);
+  pc.fn(prompt, config, onResponse, onError);
 }
+
+// Strip-markdown regexes (module-level so PKJS does not recompile them each call).
+var RE_CODE_BLOCK = /```[^\n]*\n?([\s\S]*?)```/g;
+var RE_INLINE_CODE = /`([^`]+)`/g;
+var RE_HEADERS = /^#{1,6}\s+/gm;
+var RE_BOLD = /\*\*([^*]+)\*\*/g;
+var RE_ITALIC = /\*([^*]+)\*/g;
+var RE_LINK = /\[([^\]]+)\]\([^)]+\)/g;
+var RE_UL = /^[\t ]*[-*+]\s+/gm;
+var RE_OL = /^[\t ]*\d+\.\s+/gm;
 
 /** Remove common Markdown marks so the watch shows plain text. */
 function stripMarkdown(text) {
@@ -350,18 +422,18 @@ function stripMarkdown(text) {
   }
   var s = text;
   // Code blocks: keep inner text, drop fences.
-  s = s.replace(/```[^\n]*\n?([\s\S]*?)```/g, "$1");
-  s = s.replace(/`([^`]+)`/g, "$1");
+  s = s.replace(RE_CODE_BLOCK, "$1");
+  s = s.replace(RE_INLINE_CODE, "$1");
   // Headers at line start.
-  s = s.replace(/^#{1,6}\s+/gm, "");
+  s = s.replace(RE_HEADERS, "");
   // Bold then italic (* only; skip _ to protect snake_case).
-  s = s.replace(/\*\*([^*]+)\*\*/g, "$1");
-  s = s.replace(/\*([^*]+)\*/g, "$1");
+  s = s.replace(RE_BOLD, "$1");
+  s = s.replace(RE_ITALIC, "$1");
   // Links: keep label, drop URL.
-  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  s = s.replace(RE_LINK, "$1");
   // List markers at line start.
-  s = s.replace(/^[\t ]*[-*+]\s+/gm, "");
-  s = s.replace(/^[\t ]*\d+\.\s+/gm, "");
+  s = s.replace(RE_UL, "");
+  s = s.replace(RE_OL, "");
   return s;
 }
 
@@ -373,9 +445,8 @@ function finishChatResponse(content, providerLabel, config, onResponse) {
   onResponse(display);
 }
 
-function makeOpenAIRequest(prompt, onResponse, onError) {
+function makeOpenAIRequest(prompt, config, onResponse, onError) {
   log("Starting OpenAI request");
-  var config = getConfig();
 
   var method = "POST";
   var url = "https://api.openai.com/v1/chat/completions";
@@ -384,22 +455,32 @@ function makeOpenAIRequest(prompt, onResponse, onError) {
 
   request.onload = function () {
     log("OpenAI response received, status:", this.status);
-    try {
-      var responseBody = JSON.parse(this.responseText);
-      log("OpenAI response parsed:", JSON.stringify(responseBody));
+    if (this.status >= 200 && this.status < 300) {
+      try {
+        var responseBody = JSON.parse(this.responseText);
+        log("OpenAI response parsed:", JSON.stringify(responseBody));
 
-      if (responseBody.error) {
-        log("OpenAI error:", responseBody.error.message);
-        onError(getErrorMessage(responseBody));
-        return;
+        if (responseBody.error) {
+          log("OpenAI error:", responseBody.error.message);
+          onError(getErrorMessage(responseBody));
+          return;
+        }
+
+        var chatCompletion = responseBody.choices[0].message.content;
+        messages.push({ role: "assistant", content: chatCompletion });
+        trimMessages();
+        finishChatResponse(chatCompletion, "OpenAI", config, onResponse);
+      } catch (err) {
+        log("Failed to parse OpenAI response:", err.message);
+        onError("Failed to parse response: " + (err && err.message ? err.message : "unknown"));
       }
-
-      var chatCompletion = responseBody.choices[0].message.content;
-      messages.push({ role: "assistant", content: chatCompletion });
-      finishChatResponse(chatCompletion, "OpenAI", config, onResponse);
-    } catch (err) {
-      log("Failed to parse OpenAI response:", err.message);
-      onError("Failed to parse response: " + (err && err.message ? err.message : "unknown"));
+    } else {
+      try {
+        var errorBody = JSON.parse(this.responseText);
+        onError(getErrorMessage(errorBody));
+      } catch (err) {
+        onError("Failed to parse error response");
+      }
     }
   };
 
@@ -419,11 +500,13 @@ function makeOpenAIRequest(prompt, onResponse, onError) {
   }
 
   messages.push({ role: "user", content: prompt });
+  trimMessages();
 
   var requestBody = {
     model: config.model || "gpt-5-nano",
     messages: messages,
     temperature: parseFloat(config.temperature) || 1,
+    max_tokens: MAX_OUTPUT_TOKENS,
   };
 
   log("Temperature value:", config.temperature);
@@ -433,14 +516,13 @@ function makeOpenAIRequest(prompt, onResponse, onError) {
   request.send(JSON.stringify(requestBody));
 }
 
-function makeClaudeRequest(prompt, onResponse, onError) {
-  var config = getConfig();
-
+function makeClaudeRequest(prompt, config, onResponse, onError) {
   if (!config.claudeApiKey) {
     onError("Claude API key not set");
     return;
   }
 
+  var model = resolveClaudeModel(config.claudeModel, config.claudeModelCustom);
   var request = new XMLHttpRequest();
   var url = "https://api.anthropic.com/v1/messages";
 
@@ -450,6 +532,7 @@ function makeClaudeRequest(prompt, onResponse, onError) {
         var responseBody = JSON.parse(this.responseText);
         var chatCompletion = responseBody.content[0].text;
         messages.push({ role: "assistant", content: chatCompletion });
+        trimMessages();
         finishChatResponse(chatCompletion, "Claude", config, onResponse);
       } catch (err) {
         onError("Failed to parse response");
@@ -470,7 +553,7 @@ function makeClaudeRequest(prompt, onResponse, onError) {
 
   request.open("POST", url);
   request.setRequestHeader("x-api-key", config.claudeApiKey);
-  request.setRequestHeader("anthropic-version", "2023-06-01");
+  request.setRequestHeader("anthropic-version", "2025-01-01");
   request.setRequestHeader("content-type", "application/json");
 
   // Build messages for Claude: include prior conversation, then current user prompt.
@@ -482,18 +565,19 @@ function makeClaudeRequest(prompt, onResponse, onError) {
     claudeMessages.push({ role: "user", content: prompt });
   }
 
+  messages.push({ role: "user", content: prompt });
+  trimMessages();
+
   var requestBody = JSON.stringify({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1024,
+    model: model,
+    max_tokens: MAX_OUTPUT_TOKENS,
     messages: claudeMessages
   });
 
   request.send(requestBody);
 }
 
-function makeGeminiRequest(prompt, onResponse, onError) {
-  var config = getConfig();
-
+function makeGeminiRequest(prompt, config, onResponse, onError) {
   if (!config.geminiApiKey) {
     onError("Gemini API key not set");
     return;
@@ -511,6 +595,7 @@ function makeGeminiRequest(prompt, onResponse, onError) {
         var responseBody = JSON.parse(this.responseText);
         var chatCompletion = responseBody.candidates[0].content.parts[0].text;
         messages.push({ role: "model", content: chatCompletion });
+        trimMessages();
         finishChatResponse(chatCompletion, "Gemini", config, onResponse);
       } catch (err) {
         onError("Failed to parse response");
@@ -533,6 +618,7 @@ function makeGeminiRequest(prompt, onResponse, onError) {
   request.setRequestHeader("Content-Type", "application/json");
 
   messages.push({ role: "user", content: prompt });
+  trimMessages();
 
   // Build contents from conversation history (Gemini format: alternating user/model parts).
   var contents = [];
@@ -553,16 +639,14 @@ function makeGeminiRequest(prompt, onResponse, onError) {
       temperature: config[TEMPERATURE] || 1,
       topK: 1,
       topP: 1,
-      maxOutputTokens: 2048,
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
     }
   });
 
   request.send(requestBody);
 }
 
-function makeDeepSeekRequest(prompt, onResponse, onError) {
-  var config = getConfig();
-
+function makeDeepSeekRequest(prompt, config, onResponse, onError) {
   var request = new XMLHttpRequest();
   var url = "https://api.deepseek.com/chat/completions";
 
@@ -572,6 +656,7 @@ function makeDeepSeekRequest(prompt, onResponse, onError) {
         var responseBody = JSON.parse(this.responseText);
         var chatCompletion = responseBody.choices[0].message.content;
         messages.push({ role: "assistant", content: chatCompletion });
+        trimMessages();
         finishChatResponse(chatCompletion, "DeepSeek", config, onResponse);
       } catch (err) {
         onError("Failed to parse response");
@@ -599,20 +684,20 @@ function makeDeepSeekRequest(prompt, onResponse, onError) {
   }
 
   messages.push({ role: "user", content: prompt });
+  trimMessages();
 
   var requestBody = {
     model: "deepseek-chat",
     messages: messages,
     temperature: parseFloat(config.temperature) || 1,
+    max_tokens: MAX_OUTPUT_TOKENS,
     stream: false
   };
 
   request.send(JSON.stringify(requestBody));
 }
 
-function makeGrokRequest(prompt, onResponse, onError) {
-  var config = getConfig();
-
+function makeGrokRequest(prompt, config, onResponse, onError) {
   var request = new XMLHttpRequest();
   var url = "https://api.x.ai/v1/chat/completions";
 
@@ -631,6 +716,7 @@ function makeGrokRequest(prompt, onResponse, onError) {
           return;
         }
         messages.push({ role: "assistant", content: chatCompletion });
+        trimMessages();
         finishChatResponse(chatCompletion, "Grok", config, onResponse);
       } catch (err) {
         onError("Failed to parse response");
@@ -658,12 +744,13 @@ function makeGrokRequest(prompt, onResponse, onError) {
   }
 
   messages.push({ role: "user", content: prompt });
+  trimMessages();
 
   var requestBody = {
     model: config.grokModel || "grok-4.3",
     messages: messages,
     temperature: parseFloat(config.temperature) || 1,
-    max_completion_tokens: 1024
+    max_completion_tokens: MAX_OUTPUT_TOKENS
   };
 
   request.send(JSON.stringify(requestBody));
@@ -677,15 +764,15 @@ function resetMessages() {
 Pebble.addEventListener("ready", function (e) {
   log("PebbleKit JS ready!");
   resetMessages();
-  Pebble.sendAppMessage({ AppKeyReady: true });
+  loadConfigFromStorage();
 });
 
-// Config message keys in same order as package.json pebble.messageKeys (keys 3–15).
+// Config message keys in same order as package.json pebble.messageKeys (keys 3–20).
 var CONFIG_MESSAGE_KEYS = [
   "apiKey", "model", "systemPrompt", "temperature", "vibrate", "apiProvider",
   "claudeApiKey", "geminiApiKey", "confirmTranscription", "invertColors",
   "deepseekApiKey", "showModelName", "grokApiKey", "grokModel",
-  "geminiModel", "geminiModelCustom"
+  "geminiModel", "geminiModelCustom", "claudeModel", "claudeModelCustom"
 ];
 
 function buildKeyMapping() {
@@ -718,7 +805,7 @@ Pebble.addEventListener("webviewclosed", function (e) {
   });
 
   log("Saving config:", JSON.stringify(configValues));
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(configValues));
+  saveConfig(configValues);
   resetMessages();
   log("Config saved successfully");
 });
@@ -740,9 +827,12 @@ Pebble.addEventListener("appmessage", function (e) {
   var providerFromWatch = e.payload.AppKeyApiProvider || e.payload.apiProvider || e.payload[8];
   if (providerFromWatch) {
     var config = getConfig();
-    config.apiProvider = providerFromWatch;
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-    log("Provider updated from watch:", config.apiProvider);
+    if (config.apiProvider !== providerFromWatch) {
+      config.apiProvider = providerFromWatch;
+      saveConfig(config);
+      resetMessages();
+      log("Provider updated from watch:", config.apiProvider);
+    }
   }
 
   if (e.payload.AppKeyTranscription) {
