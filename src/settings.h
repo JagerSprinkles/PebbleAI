@@ -26,6 +26,7 @@ void on_settings_received(DictionaryIterator *iter);
 void init_settings();
 
 Settings get_settings();
+const Settings* get_settings_ptr(void);
 void save_settings(Settings new_settings);
 
 #endif

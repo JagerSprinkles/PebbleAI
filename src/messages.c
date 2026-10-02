@@ -22,6 +22,7 @@ void send_to_phone(AppKey key, char* value) {
 }
 
 static void call_message_handlers(DictionaryIterator *iterator, void *context) {
+  (void) context;
   for (uint8_t i = 0; i < inbox_message_handler_count; i++) {
     MessageHandler handler = inbox_message_handlers[i];
     (*handler)(iterator);
@@ -32,6 +33,12 @@ void _init_messages(MessageHandler message_handlers[], int message_handler_count
   inbox_message_handler_count = message_handler_count;
   inbox_message_handlers = message_handlers;
   app_message_register_inbox_received(call_message_handlers);
-  /* Inbound/outbound buffer sizes; increase if long API responses are truncated */
-  app_message_open(4096, 4096);
+  /* Inbound stays large for AI responses; outbound only sends short dictation / provider strings. */
+  app_message_open(4096, 256);
+}
+
+void cleanup_messages(void) {
+  app_message_deregister_callbacks();
+  inbox_message_handlers = NULL;
+  inbox_message_handler_count = 0;
 }

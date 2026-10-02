@@ -160,19 +160,13 @@ void scroll_to_top() {
 }
 
 void set_text(char* text) {
-  Layer *text_layer = text_layer_get_layer(s_output_layer);
-  GRect text_frame = layer_get_frame(text_layer);
   GRect bounds = layer_get_bounds(scroll_layer_get_layer(s_scroll_layer));
-
-  /* Tall frame so word-wrap can measure the full message height. */
-  text_frame.size.h = 10000;
-  layer_set_frame(text_layer, text_frame);
 
   text_layer_set_text(s_output_layer, text);
 
   GSize text_size = text_layer_get_content_size(s_output_layer);
-  /* Include the text inset and a small bottom pad so the last lines stay reachable. */
-  int16_t content_h = text_frame.origin.y + text_size.h + 4;
+  /* Include the text inset (y=4) and a small bottom pad so the last lines stay reachable. */
+  int16_t content_h = 4 + text_size.h + 4;
   scroll_layer_set_content_size(s_scroll_layer, GSize(bounds.size.w, content_h));
 
   scroll_to_top();
@@ -185,8 +179,7 @@ void short_vibe() {
 }
 
 void update_ui_colors() {
-    Settings current_settings = get_settings();
-    window_set_background_color(s_main_window, current_settings.invertColors ? GColorWhite : GColorBlack);
-    text_layer_set_text_color(s_output_layer, current_settings.invertColors ? GColorBlack : GColorWhite);
-    layer_mark_dirty(window_get_root_layer(s_main_window));
+    const Settings *current_settings = get_settings_ptr();
+    window_set_background_color(s_main_window, current_settings->invertColors ? GColorWhite : GColorBlack);
+    text_layer_set_text_color(s_output_layer, current_settings->invertColors ? GColorBlack : GColorWhite);
 }
