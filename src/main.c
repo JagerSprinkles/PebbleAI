@@ -1,9 +1,9 @@
 #include <pebble.h>
-#include <messages.h>
-#include <settings.h>
-#include <ui.h>
-#include <transcription.h>
-#include <settings_menu.h>
+#include "messages.h"
+#include "settings.h"
+#include "ui.h"
+#include "transcription.h"
+#include "settings_menu.h"
 
 static void on_transcription(char* transcription) {
   set_text("Message sent to AI, awaiting response...");

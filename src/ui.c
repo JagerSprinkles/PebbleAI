@@ -1,6 +1,6 @@
 #include <pebble.h>
-#include <settings.h>
-#include <settings_menu.h>
+#include "settings.h"
+#include "settings_menu.h"
 
 static Window *s_main_window;
 static TextLayer *s_output_layer;

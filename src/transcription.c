@@ -1,6 +1,6 @@
-#include <transcription.h>
-#include <settings.h>
-#include <ui.h>
+#include "transcription.h"
+#include "settings.h"
+#include "ui.h"
 
 static DictationSession *s_dictation_session;
 

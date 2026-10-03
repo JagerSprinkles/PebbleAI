@@ -1,6 +1,6 @@
 #include <pebble.h>
-#include <messages.h>
-#include <settings.h>
+#include "messages.h"
+#include "settings.h"
 
 static Settings settings = {
   .vibrate = true,

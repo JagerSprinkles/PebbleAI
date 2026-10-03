@@ -1,5 +1,5 @@
 #include <pebble.h>
-#include <messages.h>
+#include "messages.h"
 
 static MessageHandler *inbox_message_handlers;
 static uint8_t inbox_message_handler_count;
