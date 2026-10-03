@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "jager",
   "private": true,
   "dependencies": {
@@ -51,7 +51,8 @@
       "claudeSystemPrompt": 21,
       "geminiSystemPrompt": 22,
       "deepseekSystemPrompt": 23,
-      "grokSystemPrompt": 24
+      "grokSystemPrompt": 24,
+      "geminiGoogleSearch": 25
     },
     "configurable": true,
     "enableMultiJS": true,

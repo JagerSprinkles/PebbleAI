@@ -243,6 +243,13 @@ var clayConfig = [
         label: "System prompt",
         description: "Context for how Gemini should respond on the watch.",
       },
+      {
+        type: "toggle",
+        messageKey: "geminiGoogleSearch",
+        label: "Let Gemini search Google",
+        description: "When on, Gemini can possibly look up current facts on Google before it answers. Turn off to use only what the model already knows. Searching may use more of your API quota. There is no guarantee that the search will be used by the model.",
+        defaultValue: false
+      },
     ],
   },
   {
@@ -610,6 +617,19 @@ function makeClaudeRequest(prompt, config, onResponse, onError) {
   request.send(JSON.stringify(requestBody));
 }
 
+// Pull all text parts from a Gemini response (grounding may add extra parts).
+function extractGeminiText(responseBody) {
+  var parts = responseBody.candidates[0].content.parts;
+  var text = "";
+  var i;
+  for (i = 0; i < parts.length; i++) {
+    if (parts[i].text) {
+      text += parts[i].text;
+    }
+  }
+  return text;
+}
+
 function makeGeminiRequest(prompt, config, onResponse, onError) {
   if (!config.geminiApiKey) {
     onError("Gemini API key not set");
@@ -626,7 +646,11 @@ function makeGeminiRequest(prompt, config, onResponse, onError) {
     if (this.status >= 200 && this.status < 300) {
       try {
         var responseBody = JSON.parse(this.responseText);
-        var chatCompletion = responseBody.candidates[0].content.parts[0].text;
+        var chatCompletion = extractGeminiText(responseBody);
+        if (!chatCompletion) {
+          onError("Empty Gemini response");
+          return;
+        }
         messages.push({ role: "model", content: chatCompletion });
         trimMessages();
         finishChatResponse(chatCompletion, "Gemini", config, onResponse);
@@ -678,6 +702,9 @@ function makeGeminiRequest(prompt, config, onResponse, onError) {
     requestBody.systemInstruction = {
       parts: [{ text: config.geminiSystemPrompt }]
     };
+  }
+  if (config.geminiGoogleSearch) {
+    requestBody.tools = [{ google_search: {} }];
   }
 
   request.send(JSON.stringify(requestBody));
@@ -804,14 +831,14 @@ Pebble.addEventListener("ready", function (e) {
   loadConfigFromStorage();
 });
 
-// Config message keys in same order as package.json pebble.messageKeys (keys 3–24).
+// Config message keys in same order as package.json pebble.messageKeys (keys 3–25).
 var CONFIG_MESSAGE_KEYS = [
   "apiKey", "model", "temperature", "vibrate", "apiProvider",
   "claudeApiKey", "geminiApiKey", "confirmTranscription", "invertColors",
   "deepseekApiKey", "showModelName", "grokApiKey", "grokModel",
   "geminiModel", "geminiModelCustom", "claudeModel", "claudeModelCustom",
   "openaiSystemPrompt", "claudeSystemPrompt", "geminiSystemPrompt",
-  "deepseekSystemPrompt", "grokSystemPrompt"
+  "deepseekSystemPrompt", "grokSystemPrompt", "geminiGoogleSearch"
 ];
 
 function buildKeyMapping() {

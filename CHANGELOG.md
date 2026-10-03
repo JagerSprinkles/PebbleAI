@@ -7,6 +7,18 @@ This project starts at version 1.0.0 as a fork of [PebbleAI](https://github.com/
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-03
+
+### Added
+- Gemini Clay toggle to allow Google Search grounding
+
+### Changed
+- Local C includes use double quotes instead of angle brackets
+- Gemini response parsing joins all text parts from the candidate
+
+### Fixed
+- Empty Gemini reply when grounding returns no first text part
+
 ## [1.0.1] - 2026-10-02
 
 ### Added
@@ -57,5 +69,6 @@ First release of the PebbleAI-Plus fork. Includes bug fixes, resource cleanup, a
 - `setting_names[]` marked `const` so strings can live in flash
 - Strip-markdown regexes hoisted to module scope
 
+[1.0.2]: https://github.com/JagerSprinkles/PebbleAI-Plus/releases/tag/v1.0.2
 [1.0.1]: https://github.com/JagerSprinkles/PebbleAI-Plus/releases/tag/v1.0.1
 [1.0.0]: https://github.com/JagerSprinkles/PebbleAI-Plus/releases/tag/v1.0.0
